@@ -5,7 +5,7 @@ let trackMeshes = [], trackBodies = [];
 let finishZone;
 let isPlaying = false, startTime = 0, elapsedTime = 0, currentLevel = 1;
 
-// NEW: Steering interpolation variable
+// Gradual Steering Variable
 let currentSteer = 0; 
 
 const COLORS = {
@@ -15,15 +15,15 @@ const COLORS = {
     finish: 0x2ed573
 };
 
-const keys = { w: false, a: false, s: false, d: false, r: false };
+const keys = { w: false, a: false, s: false, d: false };
 
 initEngine();
 
-// --- ENGINE INITIALIZATION (Three.js + Cannon.js) ---
+// --- ENGINE INITIALIZATION ---
 function initEngine() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87CEEB); 
-    scene.fog = new THREE.Fog(0x87CEEB, 50, 600); // Pushed fog back for longer levels
+    scene.fog = new THREE.Fog(0x87CEEB, 50, 800);
 
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     
@@ -48,12 +48,13 @@ function initEngine() {
     scene.add(dirLight);
 
     world = new CANNON.World();
-    world.gravity.set(0, -32, 0); // INCREASED GRAVITY: Stronger downforce for better grip
+    // FIXED GRAVITY: Slashed in half to normal arcade levels. You will now retain forward momentum and soar off ramps!
+    world.gravity.set(0, -25, 0); 
 
     const groundMaterial = new CANNON.Material();
     const wheelMaterial = new CANNON.Material();
     const wheelGroundContact = new CANNON.ContactMaterial(wheelMaterial, groundMaterial, {
-        friction: 0.85, // Grippy tires
+        friction: 0.9, 
         restitution: 0.0, 
         contactEquationStiffness: 1000
     });
@@ -68,13 +69,13 @@ function initEngine() {
     animate();
 }
 
-// --- CAR SETUP ---
+// --- PHYSICS CAR SETUP ---
 function setupCar(wheelMat) {
-    const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.4, 2));
+    const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.3, 1.6)); 
     chassisBody = new CANNON.Body({ mass: 800 });
-    chassisBody.addShape(chassisShape, new CANNON.Vec3(0, -0.2, 0)); 
+    chassisBody.addShape(chassisShape, new CANNON.Vec3(0, 0.2, 0)); 
     
-    const chassisGeo = new THREE.BoxGeometry(2, 0.8, 4);
+    const chassisGeo = new THREE.BoxGeometry(2, 0.6, 4);
     const chassisMesh = new THREE.Mesh(chassisGeo, new THREE.MeshStandardMaterial({ color: COLORS.car }));
     chassisMesh.castShadow = true;
     scene.add(chassisMesh);
@@ -88,30 +89,30 @@ function setupCar(wheelMat) {
     });
 
     const options = {
-        radius: 0.45,
+        radius: 0.5, 
         directionLocal: new CANNON.Vec3(0, -1, 0),
-        suspensionStiffness: 45,
-        suspensionRestLength: 0.4,
-        frictionSlip: 6,
+        suspensionStiffness: 45, 
+        suspensionRestLength: 0.45,
+        frictionSlip: 3.0, 
         dampingRelaxation: 2.3,
         dampingCompression: 4.4,
         maxSuspensionForce: 100000,
-        rollInfluence: 0.01,
-        axleLocal: new CANNON.Vec3(-1, 0, 0),
+        rollInfluence: 0.01, 
+        axleLocal: new CANNON.Vec3(1, 0, 0),
         chassisConnectionPointLocal: new CANNON.Vec3(1, 0, 1),
-        maxSuspensionTravel: 0.3,
+        maxSuspensionTravel: 0.4,
         customSlidingRotationalSpeed: -30,
         useCustomSlidingRotationalSpeed: true
     };
 
-    options.chassisConnectionPointLocal.set(1.1, -0.1, -1.2); vehicle.addWheel(options); 
-    options.chassisConnectionPointLocal.set(-1.1, -0.1, -1.2); vehicle.addWheel(options);
-    options.chassisConnectionPointLocal.set(1.1, -0.1, 1.2); vehicle.addWheel(options); 
-    options.chassisConnectionPointLocal.set(-1.1, -0.1, 1.2); vehicle.addWheel(options); 
+    options.chassisConnectionPointLocal.set(1.1, 0, -1.2); vehicle.addWheel(options);
+    options.chassisConnectionPointLocal.set(-1.1, 0, -1.2); vehicle.addWheel(options);
+    options.chassisConnectionPointLocal.set(1.1, 0, 1.2); vehicle.addWheel(options);
+    options.chassisConnectionPointLocal.set(-1.1, 0, 1.2); vehicle.addWheel(options);
 
     vehicle.addToWorld(world);
 
-    const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.4, 16);
+    const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 16);
     wheelGeo.rotateZ(Math.PI / 2);
     const wheelMeshMat = new THREE.MeshStandardMaterial({ color: COLORS.wheels });
     vehicle.wheelInfos.forEach((wheel) => {
@@ -122,47 +123,40 @@ function setupCar(wheelMat) {
     });
 }
 
-// --- OVERHAULED, MUCH LONGER LEVEL DESIGN ---
+// --- LEVEL DESIGN ---
 const levels = {
-    1: [ // Extra Long Straight
-        { pos: [0, 0, -30], size: [14, 1, 70] },
-        { pos: [0, 0, -100], size: [14, 1, 70] },
-        { pos: [0, 0, -170], size: [14, 1, 70] },
-        { pos: [0, 0, -240], size: [14, 1, 70] }
+    1: [ 
+        { pos: [0, 0, -40], size: [20, 1, 100] },
+        { pos: [0, 0, -140], size: [20, 1, 100] },
+        { pos: [0, 0, -240], size: [20, 1, 100] }
     ],
-    2: [ // Fair Ramps (Landings are explicitly lower than jumps)
-        { pos: [0, 0, -25], size: [14, 1, 60] }, // Ends Z = -55
-        { pos: [0, 1.5, -65], size: [14, 1, 20], rot: [-0.15, 0, 0] }, // Ramp up. Ends Z = -75
-        // 20 Unit Gap
-        { pos: [0, -2, -125], size: [20, 1, 60] }, // Lower, wider landing pad. Starts Z = -95
-        { pos: [0, -2, -185], size: [14, 1, 60] } 
+    2: [ 
+        { pos: [0, 0, -25], size: [20, 1, 70] }, 
+        { pos: [0, 2, -75], size: [20, 1, 35], rot: [0.2, 0, 0] }, 
+        { pos: [0, -5, -155], size: [30, 1, 100] }, 
+        { pos: [0, -5, -255], size: [20, 1, 100] }
     ],
-    3: [ // The Curves (Longer Straights between corners)
-        { pos: [0, 0, -30], size: [14, 1, 70] }, // Ends -65
-        { pos: [-15, 0, -72], size: [44, 1, 14] }, // Left turn connection
-        { pos: [-30, 0, -109], size: [14, 1, 60] }, // Long Straight
-        { pos: [-15, 0, -146], size: [44, 1, 14] }, // Right Turn
-        { pos: [0, 0, -183], size: [14, 1, 60] },
-        { pos: [15, 0, -220], size: [44, 1, 14] }, // Right Turn
-        { pos: [30, 0, -257], size: [14, 1, 60] }
+    3: [ 
+        { pos: [0, 0, -30], size: [20, 1, 80] }, 
+        { pos: [-25, 0, -80], size: [70, 1, 20] }, 
+        { pos: [-50, 0, -130], size: [20, 1, 80] }, 
+        { pos: [-25, 0, -180], size: [70, 1, 20] }, 
+        { pos: [0, 0, -230], size: [20, 1, 80] }
     ],
-    4: [ // Massive High Jump
-        { pos: [0, 0, -40], size: [14, 1, 90] }, // Huge runway. Ends -85
-        { pos: [0, 3, -100], size: [14, 1, 30], rot: [-0.2, 0, 0] }, // Massive steep ramp. Ends -115
-        // 30 Unit Gap!
-        { pos: [0, -6, -195], size: [24, 1, 100] }, // Massive, deep landing pad. Starts -145
-        { pos: [0, -6, -270], size: [20, 1, 50] } 
+    4: [ 
+        { pos: [0, 0, -40], size: [20, 1, 100] }, 
+        { pos: [0, 5, -110], size: [20, 1, 50], rot: [0.25, 0, 0] }, 
+        { pos: [0, -15, -240], size: [40, 1, 150] }, 
+        { pos: [0, -15, -360], size: [20, 1, 90] }
     ],
-    5: [ // The Zig Zag (Extended length)
-        { pos: [0, 0, -25], size: [14, 1, 60] },
-        { pos: [20, 0, -62], size: [54, 1, 14] }, 
-        { pos: [40, 0, -109], size: [14, 1, 80] }, 
-        { pos: [20, 0, -156], size: [54, 1, 14] }, 
-        { pos: [0, 0, -203], size: [14, 1, 80] }, 
-        { pos: [-20, 0, -250], size: [54, 1, 14] }, 
-        { pos: [-40, 0, -297], size: [14, 1, 80] }, 
-        { pos: [-40, 2, -347], size: [14, 1, 20], rot: [-0.2, 0, 0] }, // Final Jump
-        { pos: [-40, -3, -400], size: [20, 1, 70] } // Landing
+    5: [ 
+        { pos: [0, 0, -30], size: [20, 1, 80] },
+        { pos: [30, 0, -80], size: [80, 1, 20] }, 
+        { pos: [60, 0, -130], size: [20, 1, 80] }, 
+        { pos: [30, 0, -180], size: [80, 1, 20] }, 
+        { pos: [0, 0, -230], size: [20, 1, 80] }, 
+        { pos: [0, 3, -285], size: [20, 1, 35], rot: [0.2, 0, 0] }, 
+        { pos: [0, -8, -365], size: [30, 1, 100] } 
     ]
 };
 
@@ -215,6 +209,7 @@ function startGame(level) {
     document.getElementById('end-screen').classList.add('hidden');
     document.getElementById('timer').style.display = 'block';
     document.getElementById('speedometer').style.display = 'block';
+    document.getElementById('back-btn').classList.remove('hidden'); // Show Esc button
 
     buildLevel(level);
     resetCar();
@@ -230,7 +225,7 @@ function resetCar() {
     chassisBody.angularVelocity.set(0, 0, 0);
     chassisBody.quaternion.set(0, 0, 0, 1);
     keys.w = keys.a = keys.s = keys.d = false;
-    currentSteer = 0; // Reset steering angle on restart
+    currentSteer = 0; 
 }
 
 function handleKey(key, isDown) {
@@ -239,22 +234,27 @@ function handleKey(key, isDown) {
     if (key === 'a' || key === 'arrowleft') keys.a = isDown;
     if (key === 'd' || key === 'arrowright') keys.d = isDown;
     
-    if (key === 'r' && isDown && isPlaying) {
-        resetCar();
-        startTime = Date.now();
+    // Quick Restart and Menu Exit Keys
+    if (isDown && isPlaying) {
+        if (key === 'r' || key === 'enter') {
+            resetCar();
+            startTime = Date.now();
+        }
+        if (key === 'escape') {
+            returnToMenu();
+        }
     }
 }
 
 function updateVehicleControls() {
-    const engineForce = 2200; // Boosted for higher speeds on longer tracks
-    const maxSteerVal = 0.5; // About 30 degrees max
-    const steerSpeed = 0.035; // The speed at which the steering wheel turns (Smooth interpolation)
+    const engineForce = 2800; // Boosted slightly to easily clear the high jumps
+    const currentSpeed = chassisBody.velocity.length() * 3.6;
 
-    // Gas / Reverse
+    // Acceleration
     if (keys.w) {
         vehicle.applyEngineForce(engineForce, 2);
         vehicle.applyEngineForce(engineForce, 3);
-    } else if (keys.s) {
+    } else if (keys.s && !keys.w) {
         vehicle.applyEngineForce(-engineForce, 2);
         vehicle.applyEngineForce(-engineForce, 3);
     } else {
@@ -263,28 +263,27 @@ function updateVehicleControls() {
     }
 
     // Braking
-    const currentSpeed = chassisBody.velocity.length() * 3.6;
     if (keys.s && currentSpeed > 5) {
-        vehicle.setBrake(80, 2); vehicle.setBrake(80, 3);
+        vehicle.setBrake(100, 2); vehicle.setBrake(100, 3);
     } else {
         vehicle.setBrake(0, 2); vehicle.setBrake(0, 3);
     }
 
-    // NEW: SMOOTH TRACKMANIA STEERING INTERPOLATION
+    // --- FIXED GRADUAL STEERING ---
+    // Mathematically reduces your max steering angle at high speeds for perfect stability
+    const dynamicMaxSteer = Math.max(0.15, 0.35 - (currentSpeed / 800)); 
+    const steerSpeed = 0.005; // Cut in half so it eases in beautifully
+
     if (keys.a) {
-        currentSteer = Math.min(currentSteer + steerSpeed, maxSteerVal);
+        currentSteer = Math.min(currentSteer + steerSpeed, dynamicMaxSteer);
     } else if (keys.d) {
-        currentSteer = Math.max(currentSteer - steerSpeed, -maxSteerVal);
+        currentSteer = Math.max(currentSteer - steerSpeed, -dynamicMaxSteer);
     } else {
-        // Auto-center the steering wheel smoothly when keys are released
-        if (currentSteer > 0) {
-            currentSteer = Math.max(currentSteer - steerSpeed, 0);
-        } else if (currentSteer < 0) {
-            currentSteer = Math.min(currentSteer + steerSpeed, 0);
-        }
+        // Auto-center smoothly
+        currentSteer *= 0.85; 
+        if (Math.abs(currentSteer) < 0.001) currentSteer = 0;
     }
 
-    // Apply the smoothed variable to the wheels
     vehicle.setSteeringValue(currentSteer, 0);
     vehicle.setSteeringValue(currentSteer, 1);
 }
@@ -297,7 +296,7 @@ function formatTime(ms) {
 }
 
 function checkGameState() {
-    if (chassisBody.position.y < -25) {
+    if (chassisBody.position.y < -40) {
         resetCar();
         startTime = Date.now(); 
     }
@@ -310,6 +309,7 @@ function checkGameState() {
             isPlaying = false;
             document.getElementById('timer').style.display = 'none';
             document.getElementById('speedometer').style.display = 'none';
+            document.getElementById('back-btn').classList.add('hidden');
             
             document.getElementById('end-screen').classList.remove('hidden');
             document.getElementById('final-time').innerText = formatTime(elapsedTime);
@@ -337,7 +337,7 @@ function animate() {
             vehicle.wheelInfos[i].mesh.quaternion.copy(t.quaternion);
         }
 
-        const chaseDist = 8.5; // Slightly further back for better visibility at high speeds
+        const chaseDist = 8.5; 
         const chaseHeight = 4.0;
         const cameraOffset = new THREE.Vector3(0, chaseHeight, chaseDist);
         cameraOffset.applyQuaternion(chassisBody.mesh.quaternion);
@@ -401,8 +401,10 @@ function submitScore() {
 }
 
 function returnToMenu() {
+    isPlaying = false;
     document.getElementById('end-screen').classList.add('hidden');
     document.getElementById('menu').classList.remove('hidden');
     document.getElementById('timer').style.display = 'none';
     document.getElementById('speedometer').style.display = 'none';
+    document.getElementById('back-btn').classList.add('hidden');
 }

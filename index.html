@@ -15,10 +15,17 @@
         <div id="timer">00:00.000</div>
         <div id="speedometer">0 km/h</div>
         
+        <!-- NEW: On-screen back button while driving -->
+        <button id="back-btn" class="secondary hidden" onclick="returnToMenu()" style="position: absolute; top: 20px; left: 20px; font-size: 16px; padding: 10px 20px; z-index: 10;">Esc - Main Menu</button>
+        
         <div id="menu" class="screen">
             <h1>POLYRACING</h1>
-            <p>Controls: WASD / Arrows to Drive | <b>R to Quick Restart</b></p>
-            <div class="level-select">
+            <p style="text-align: center; line-height: 1.6;">
+                Controls: WASD / Arrows to Drive<br>
+                <b>R or Enter</b> to Quick Restart | <b>Escape</b> for Main Menu
+            </p>
+            
+            <div class="level-select" style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 20px;">
                 <button onclick="startGame(1)">Level 1 - The Straightaway</button>
                 <button onclick="startGame(2)">Level 2 - The Ramps</button>
                 <button onclick="startGame(3)">Level 3 - The Curves</button>
@@ -39,8 +46,10 @@
                 <ul id="leaderboard-list"></ul>
             </div>
             
-            <button onclick="startGame(currentLevel)" class="secondary">Play Again</button>
-            <button onclick="returnToMenu()" class="secondary" style="background:#576574;">Main Menu</button>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="startGame(currentLevel)" class="secondary">Play Again</button>
+                <button onclick="returnToMenu()" class="secondary" style="background:#576574;">Main Menu</button>
+            </div>
         </div>
     </div>
 
