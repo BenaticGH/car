@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolyTrack Offline</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Loading libraries locally -->
+    <script src="three.min.js"></script>
+    <script src="cannon.min.js"></script>
+</head>
+<body>
+    <div id="ui-layer">
+        <div id="timer">00:00.000</div>
+        <div id="speedometer">0 km/h</div>
+        
+        <div id="menu" class="screen">
+            <h1>POLYRACING</h1>
+            <p>Controls: WASD / Arrows to Drive | <b>R to Quick Restart</b></p>
+            <div class="level-select">
+                <button onclick="startGame(1)">Level 1 - The Straightaway</button>
+                <button onclick="startGame(2)">Level 2 - The Ramps</button>
+                <button onclick="startGame(3)">Level 3 - The Curves</button>
+                <button onclick="startGame(4)">Level 4 - High Jump</button>
+                <button onclick="startGame(5)">Level 5 - The Zig Zag</button>
+            </div>
+        </div>
+
+        <div id="end-screen" class="screen hidden">
+            <h2>FINISH!</h2>
+            <p>Your Time: <span id="final-time"></span></p>
+            
+            <input type="text" id="player-name" placeholder="Enter your name" maxlength="10">
+            <button onclick="submitScore()">Save Local Best</button>
+            
+            <div class="leaderboard-container">
+                <h3>Your Local Best Times</h3>
+                <ul id="leaderboard-list"></ul>
+            </div>
+            
+            <button onclick="startGame(currentLevel)" class="secondary">Play Again</button>
+            <button onclick="returnToMenu()" class="secondary" style="background:#576574;">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Loads our game script -->
+    <script src="game.js"></script>
+</body>
+</html>
